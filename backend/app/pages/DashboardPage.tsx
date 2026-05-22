@@ -5,13 +5,12 @@ export function DashboardPage() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState<any>(null);
-  const [usuarios, setUsuarios] = useState([]);
-  const [provas, setProvas] = useState([]);
-  const [questoes, setQuestoes] = useState([]);
-
+  const [usuarios, setUsuarios] = useState<any[]>([]);
+  const [provas, setProvas] = useState<any[]>([]);
+  const [questoes, setQuestoes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* 🔐 PROTEÇÃO + LOAD USER */
+  /* 🔐 AUTH + LOAD */
   useEffect(() => {
     const stored = localStorage.getItem("user");
 
@@ -20,13 +19,17 @@ export function DashboardPage() {
       return;
     }
 
-    const parsed = JSON.parse(stored);
-    setUser(parsed);
-
-    fetchData();
+    try {
+      const parsed = JSON.parse(stored);
+      setUser(parsed);
+      fetchData();
+    } catch {
+      localStorage.removeItem("user");
+      navigate("/login");
+    }
   }, []);
 
-  /* 🔥 BUSCAR DADOS DO BACKEND */
+  /* 🔄 FETCH BACKEND */
   const fetchData = async () => {
     try {
       const [u, p, q] = await Promise.all([
@@ -39,27 +42,29 @@ export function DashboardPage() {
       const provasData = await p.json();
       const questoesData = await q.json();
 
-      setUsuarios(usuariosData);
-      setProvas(provasData);
-      setQuestoes(questoesData);
+      setUsuarios(usuariosData || []);
+      setProvas(provasData || []);
+      setQuestoes(questoesData || []);
     } catch (err) {
       console.error("Erro ao buscar dados:", err);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   /* 🔄 LOADING */
   if (loading) {
-    return <div>Carregando dashboard...</div>;
+    return <div className="p-4">Carregando dashboard...</div>;
   }
 
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-bold">Dashboard ({user?.tipo})</h1>
+          <h1 className="text-xl font-bold">
+            Dashboard ({user?.tipo || "Usuário"})
+          </h1>
           <p className="text-sm text-gray-500">Dados em tempo real</p>
         </div>
 
@@ -68,69 +73,87 @@ export function DashboardPage() {
             localStorage.removeItem("user");
             navigate("/login");
           }}
-          className="text-red-500"
+          className="text-red-500 text-sm hover:underline"
         >
           Sair
         </button>
       </div>
 
-      {/* CARDS DINÂMICOS */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="text-sm text-gray-500">Usuários</h2>
-          <p className="text-xl font-bold">{usuarios.length}</p>
-        </div>
-
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="text-sm text-gray-500">Provas</h2>
-          <p className="text-xl font-bold">{provas.length}</p>
-        </div>
-
-        <div className="bg-white p-4 rounded shadow">
-          <h2 className="text-sm text-gray-500">Questões</h2>
-          <p className="text-xl font-bold">{questoes.length}</p>
-        </div>
+      {/* CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card title="Usuários" value={usuarios.length} />
+        <Card title="Provas" value={provas.length} />
+        <Card title="Questões" value={questoes.length} />
       </div>
 
-      {/* LISTA DE PROVAS */}
+      {/* ÚLTIMAS PROVAS */}
       <div className="bg-white p-4 rounded shadow">
-        <h2 className="font-bold mb-2">Últimas Provas</h2>
+        <h2 className="font-bold mb-3">Últimas Provas</h2>
 
-        {provas.length === 0 && <p>Nenhuma prova cadastrada</p>}
-
-        {provas.map((p: any) => (
-          <div key={p.id} className="border-b py-2">
-            <p className="font-medium">{p.nome}</p>
-            <p className="text-xs text-gray-500">{p.tipo}</p>
-          </div>
-        ))}
+        {provas.length === 0 ? (
+          <p className="text-sm text-gray-500">Nenhuma prova cadastrada</p>
+        ) : (
+          provas.slice(0, 5).map((p) => (
+            <div key={p.id} className="border-b py-2">
+              <p className="font-medium">{p.nome || "Sem nome"}</p>
+              <p className="text-xs text-gray-500">{p.tipo}</p>
+            </div>
+          ))
+        )}
       </div>
 
       {/* AÇÕES */}
-      <div className="grid grid-cols-2 gap-3">
-        <button
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <ActionButton
+          label="Gerar Prova"
+          color="bg-blue-600"
           onClick={() => navigate("/app/exam-generator")}
-          className="bg-blue-600 text-white p-3 rounded"
-        >
-          Gerar Prova
-        </button>
+        />
 
-        <button
+        <ActionButton
+          label="Banco de Questões"
+          color="bg-purple-600"
           onClick={() => navigate("/app/question-bank")}
-          className="bg-purple-600 text-white p-3 rounded"
-        >
-          Banco de Questões
-        </button>
+        />
 
         {user?.tipo === "secretaria" && (
-          <button
-            onClick={() => navigate("/app/students")}
-            className="bg-green-600 text-white p-3 rounded"
-          >
-            Gerenciar Usuários
-          </button>
+          <ActionButton
+            label="Gerenciar Usuários"
+            color="bg-green-600"
+            onClick={() => navigate("/app/users")}
+          />
         )}
       </div>
     </div>
+  );
+}
+
+/* 🔹 COMPONENTES AUXILIARES */
+
+function Card({ title, value }: { title: string; value: number }) {
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h2 className="text-sm text-gray-500">{title}</h2>
+      <p className="text-xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function ActionButton({
+  label,
+  onClick,
+  color,
+}: {
+  label: string;
+  onClick: () => void;
+  color: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`${color} text-white p-3 rounded hover:opacity-90 transition`}
+    >
+      {label}
+    </button>
   );
 }

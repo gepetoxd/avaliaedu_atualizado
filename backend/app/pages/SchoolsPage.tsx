@@ -1,231 +1,188 @@
-import { useState } from "react";
-import { School, Users, BarChart3, TrendingUp, TrendingDown, MapPin, Eye } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useEffect, useState } from "react";
+import { TrendingUp, TrendingDown } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
-const schools = [
-  {
-    id: "E001",
-    name: "E.M. Rui Barbosa",
-    zone: "Zona Norte",
-    principal: "Carlos Alberto",
-    teachers: 24,
-    students: 342,
-    classes: 10,
-    avgScore: 78,
-    trend: "up",
-    exams: 15,
-    scoreHistory: [
-      { mes: "Out", score: 72 }, { mes: "Nov", score: 74 }, { mes: "Dez", score: 73 },
-      { mes: "Jan", score: 76 }, { mes: "Fev", score: 77 }, { mes: "Mar", score: 78 },
-    ],
-    skillScores: { Álgebra: 82, Geometria: 60, Estatística: 78, Números: 85, Leitura: 76, "Prod. Textual": 70 },
-  },
-  {
-    id: "E002",
-    name: "E.M. Tiradentes",
-    zone: "Zona Sul",
-    principal: "Sandra Moura",
-    teachers: 20,
-    students: 289,
-    classes: 8,
-    avgScore: 74,
-    trend: "up",
-    exams: 12,
-    scoreHistory: [
-      { mes: "Out", score: 68 }, { mes: "Nov", score: 70 }, { mes: "Dez", score: 69 },
-      { mes: "Jan", score: 71 }, { mes: "Fev", score: 73 }, { mes: "Mar", score: 74 },
-    ],
-    skillScores: { Álgebra: 76, Geometria: 55, Estatística: 72, Números: 80, Leitura: 74, "Prod. Textual": 67 },
-  },
-  {
-    id: "E003",
-    name: "E.M. Santos Dumont",
-    zone: "Zona Leste",
-    principal: "Paulo Lima",
-    teachers: 28,
-    students: 415,
-    classes: 12,
-    avgScore: 71,
-    trend: "down",
-    exams: 18,
-    scoreHistory: [
-      { mes: "Out", score: 73 }, { mes: "Nov", score: 72 }, { mes: "Dez", score: 71 },
-      { mes: "Jan", score: 72 }, { mes: "Fev", score: 71 }, { mes: "Mar", score: 71 },
-    ],
-    skillScores: { Álgebra: 70, Geometria: 52, Estatística: 68, Números: 76, Leitura: 72, "Prod. Textual": 65 },
-  },
-  {
-    id: "E004",
-    name: "E.M. Dom Pedro II",
-    zone: "Zona Oeste",
-    principal: "Beatriz Santos",
-    teachers: 22,
-    students: 378,
-    classes: 11,
-    avgScore: 68,
-    trend: "up",
-    exams: 13,
-    scoreHistory: [
-      { mes: "Out", score: 62 }, { mes: "Nov", score: 64 }, { mes: "Dez", score: 63 },
-      { mes: "Jan", score: 65 }, { mes: "Fev", score: 66 }, { mes: "Mar", score: 68 },
-    ],
-    skillScores: { Álgebra: 68, Geometria: 50, Estatística: 65, Números: 74, Leitura: 70, "Prod. Textual": 62 },
-  },
-  {
-    id: "E005",
-    name: "E.M. José de Alencar",
-    zone: "Centro",
-    principal: "Marcos Vieira",
-    teachers: 16,
-    students: 201,
-    classes: 6,
-    avgScore: 65,
-    trend: "down",
-    exams: 9,
-    scoreHistory: [
-      { mes: "Out", score: 67 }, { mes: "Nov", score: 66 }, { mes: "Dez", score: 66 },
-      { mes: "Jan", score: 66 }, { mes: "Fev", score: 65 }, { mes: "Mar", score: 65 },
-    ],
-    skillScores: { Álgebra: 64, Geometria: 48, Estatística: 62, Números: 70, Leitura: 68, "Prod. Textual": 58 },
-  },
-];
-
-const comparisonData = schools.map((s) => ({ escola: s.name.replace("E.M. ", ""), media: s.avgScore }));
+type School = {
+  id: string;
+  name: string;
+  zone: string;
+  principal: string;
+  teachers: number;
+  students: number;
+  classes: number;
+  avgScore: number;
+  trend: "up" | "down";
+  exams: number;
+  scoreHistory: { mes: string; score: number }[];
+  skillScores: Record<string, number>;
+};
 
 export function SchoolsPage() {
-  const [selected, setSelected] = useState<(typeof schools)[0] | null>(null);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [selected, setSelected] = useState<School | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  /* 🔥 FETCH BACKEND */
+  useEffect(() => {
+    fetch("http://localhost:3000/api/escolas")
+      .then((res) => res.json())
+      .then((data) => setSchools(data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div>Carregando escolas...</div>;
+
+  const comparisonData = schools.map((s) => ({
+    escola: s.name,
+    media: s.avgScore,
+  }));
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-[#0F172A]">Escolas</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{schools.length} escolas no município</p>
-        </div>
+    <div className="space-y-6">
+      {/* HEADER */}
+      <div>
+        <h1 className="text-xl font-bold">Escolas</h1>
+        <p className="text-sm text-gray-500">
+          {schools.length} escolas cadastradas
+        </p>
       </div>
 
-      {/* Comparison chart */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-        <h3 className="text-sm font-semibold text-[#0F172A] mb-1">Comparativo de Desempenho</h3>
-        <p className="text-xs text-slate-400 mb-4">Média geral por escola · Março 2026</p>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={comparisonData} barSize={36}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-            <XAxis dataKey="escola" tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} domain={[55, 85]} />
-            <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #E2E8F0", fontSize: 12 }} formatter={(v: number) => [`${v}%`, "Média"]} />
-            <Bar dataKey="media" fill="#2563EB" radius={[4, 4, 0, 0]} />
+      {/* CHART */}
+      <div className="bg-white p-4 rounded shadow">
+        <h3 className="font-semibold mb-2">Comparativo</h3>
+
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={comparisonData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="escola" />
+            <YAxis domain={[50, 100]} />
+            <Tooltip formatter={(v: number) => `${v}%`} />
+            <Bar dataKey="media" fill="#2563EB" />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* School list */}
+      {/* LISTA */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="space-y-3">
-          {schools.map((school, i) => (
+        <div className="space-y-2">
+          {schools.map((school) => (
             <div
               key={school.id}
-              onClick={() => setSelected(selected?.id === school.id ? null : school)}
-              className={`bg-white rounded-xl border transition-all cursor-pointer p-4 ${
-                selected?.id === school.id ? "border-[#2563EB] shadow-md" : "border-gray-100 hover:border-gray-200 hover:shadow-sm"
+              onClick={() =>
+                setSelected(selected?.id === school.id ? null : school)
+              }
+              className={`p-4 border rounded cursor-pointer ${
+                selected?.id === school.id
+                  ? "border-blue-500"
+                  : "hover:border-gray-300"
               }`}
             >
-              <div className="flex items-start gap-3">
-                <div className="relative">
-                  <div className="w-10 h-10 bg-[#2563EB] rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-base font-bold text-white">{i + 1}</span>
-                  </div>
+              <div className="flex justify-between">
+                <div>
+                  <p className="font-semibold">{school.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {school.zone} • Dir. {school.principal}
+                  </p>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-[#0F172A] truncate">{school.name}</h3>
-                    <div className="flex items-center gap-1">
-                      <span className={`text-sm font-bold ${school.avgScore >= 75 ? "text-[#10B981]" : school.avgScore >= 60 ? "text-[#F59E0B]" : "text-red-500"}`}>
-                        {school.avgScore}%
-                      </span>
-                      {school.trend === "up" ? <TrendingUp size={13} className="text-[#10B981]" /> : <TrendingDown size={13} className="text-red-500" />}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
-                    <MapPin size={10} />
-                    {school.zone} · Dir. {school.principal}
-                  </div>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
-                    <span className="flex items-center gap-1"><Users size={11} />{school.students}</span>
-                    <span className="flex items-center gap-1"><School size={11} />{school.classes} turmas</span>
-                    <span className="flex items-center gap-1"><BarChart3 size={11} />{school.exams} provas</span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
-                    <div className="h-1.5 rounded-full bg-[#2563EB]" style={{ width: `${school.avgScore}%` }} />
-                  </div>
+
+                <div className="flex items-center gap-1">
+                  <span
+                    className={`font-bold ${
+                      school.avgScore >= 75
+                        ? "text-green-600"
+                        : school.avgScore >= 60
+                          ? "text-yellow-500"
+                          : "text-red-500"
+                    }`}
+                  >
+                    {school.avgScore}%
+                  </span>
+
+                  {school.trend === "up" ? (
+                    <TrendingUp size={14} />
+                  ) : (
+                    <TrendingDown size={14} />
+                  )}
                 </div>
+              </div>
+
+              <div className="mt-2 text-xs text-gray-500 flex gap-3">
+                <span>{school.students} alunos</span>
+                <span>{school.classes} turmas</span>
+                <span>{school.exams} provas</span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* School detail */}
+        {/* DETALHE */}
         {selected && (
-          <div className="bg-white rounded-xl border border-[#2563EB] shadow-md p-5 space-y-4 h-fit sticky top-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-bold text-[#0F172A]">{selected.name}</h2>
-                <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
-                  <MapPin size={11} />
-                  {selected.zone}
-                </div>
-              </div>
-              <button className="flex items-center gap-1 text-xs text-[#2563EB] hover:underline">
-                <Eye size={12} /> Ver detalhes
-              </button>
+          <div className="bg-white p-4 rounded shadow space-y-4">
+            <div>
+              <h2 className="font-bold">{selected.name}</h2>
+              <p className="text-xs text-gray-500">{selected.zone}</p>
             </div>
 
-            {/* Trend chart */}
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Evolução da Média</p>
-              <ResponsiveContainer width="100%" height={120}>
-                <BarChart data={selected.scoreHistory} barSize={20}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                  <XAxis dataKey="mes" tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} domain={[55, 90]} />
-                  <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #E2E8F0", fontSize: 12 }} formatter={(v: number) => [`${v}%`, "Média"]} />
-                  <Bar dataKey="score" fill="#2563EB" radius={[3, 3, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {/* TREND */}
+            <ResponsiveContainer width="100%" height={120}>
+              <BarChart data={selected.scoreHistory}>
+                <XAxis dataKey="mes" />
+                <YAxis domain={[50, 100]} />
+                <Tooltip formatter={(v: number) => `${v}%`} />
+                <Bar dataKey="score" fill="#2563EB" />
+              </BarChart>
+            </ResponsiveContainer>
 
-            {/* Skill scores */}
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Habilidades</p>
-              <div className="space-y-1.5">
-                {Object.entries(selected.skillScores).map(([skill, score]) => (
-                  <div key={skill} className="flex items-center gap-2">
-                    <span className="text-xs text-slate-600 w-24 flex-shrink-0">{skill}</span>
-                    <div className="flex-1 bg-gray-100 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full"
-                        style={{ width: `${score}%`, backgroundColor: score >= 75 ? "#10B981" : score >= 60 ? "#F59E0B" : "#EF4444" }}
-                      />
-                    </div>
-                    <span className="text-xs font-bold w-8 text-right" style={{ color: score >= 75 ? "#10B981" : score >= 60 ? "#F59E0B" : "#EF4444" }}>
-                      {score}%
-                    </span>
+            {/* SKILLS */}
+            <div className="space-y-2">
+              {Object.entries(selected.skillScores).map(([skill, score]) => (
+                <div key={skill}>
+                  <div className="flex justify-between text-xs">
+                    <span>{skill}</span>
+                    <span>{score}%</span>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100">
-              {[
-                { label: "Professores", value: selected.teachers },
-                { label: "Alunos", value: selected.students },
-                { label: "Turmas", value: selected.classes },
-              ].map((s, i) => (
-                <div key={i} className="text-center">
-                  <div className="text-lg font-bold text-[#0F172A]">{s.value}</div>
-                  <div className="text-xs text-slate-400">{s.label}</div>
+                  <div className="bg-gray-200 h-2 rounded">
+                    <div
+                      className="h-2 rounded"
+                      style={{
+                        width: `${score}%`,
+                        backgroundColor:
+                          score >= 75
+                            ? "#10B981"
+                            : score >= 60
+                              ? "#F59E0B"
+                              : "#EF4444",
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
+            </div>
+
+            {/* STATS */}
+            <div className="grid grid-cols-3 text-center pt-2 border-t">
+              <div>
+                <p className="font-bold">{selected.teachers}</p>
+                <p className="text-xs text-gray-500">Prof.</p>
+              </div>
+              <div>
+                <p className="font-bold">{selected.students}</p>
+                <p className="text-xs text-gray-500">Alunos</p>
+              </div>
+              <div>
+                <p className="font-bold">{selected.classes}</p>
+                <p className="text-xs text-gray-500">Turmas</p>
+              </div>
             </div>
           </div>
         )}

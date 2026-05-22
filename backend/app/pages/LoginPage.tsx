@@ -9,58 +9,76 @@ import {
   BookOpen,
 } from "lucide-react";
 
+type User = {
+  id: number;
+  email: string;
+  senha: string;
+  tipo: "professor" | "diretor" | "secretaria";
+};
+
 export function LoginPage() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [tipo, setTipo] = useState("professor");
+  const [tipo, setTipo] = useState<User["tipo"]>("professor");
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  /* 🔐 LOGIN */
   const handleLogin = async () => {
+    if (!email || !password) {
+      alert("Preencha email e senha");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await fetch("http://localhost:3000/api/usuarios");
-      const usuarios = await res.json();
+
+      if (!res.ok) throw new Error("Erro na API");
+
+      const usuarios: User[] = await res.json();
 
       const user = usuarios.find(
-        (u: any) =>
-          u.email === email && u.senha === password && u.tipo === tipo,
+        (u) =>
+          u.email.toLowerCase() === email.toLowerCase() &&
+          u.senha === password &&
+          u.tipo === tipo,
       );
 
       if (!user) {
         alert("Credenciais inválidas");
-        setLoading(false);
         return;
       }
 
       localStorage.setItem("user", JSON.stringify(user));
 
-      // REDIRECIONAMENTO
-      if (user.tipo === "professor") navigate("/dashboard");
-      if (user.tipo === "diretor") navigate("/analytics");
-      if (user.tipo === "secretaria") navigate("/admin");
+      /* 🔀 REDIRECT */
+      const routes = {
+        professor: "/app/dashboard",
+        diretor: "/app/analytics",
+        secretaria: "/app/admin",
+      };
+
+      navigate(routes[user.tipo]);
     } catch (err) {
       console.error(err);
       alert("Erro ao conectar com servidor");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
-    <div
-      className="min-h-screen flex"
-      style={{ fontFamily: "'Inter', sans-serif", background: "#F8FAFC" }}
-    >
+    <div className="min-h-screen flex bg-[#F8FAFC]">
       {/* LEFT */}
       <div className="hidden lg:flex flex-col justify-between w-1/2 bg-[#0F172A] p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-5">
           <div
-            className="absolute top-0 left-0 w-full h-full"
+            className="w-full h-full"
             style={{
               backgroundImage:
                 "radial-gradient(circle at 25px 25px, white 2px, transparent 0)",
@@ -68,9 +86,6 @@ export function LoginPage() {
             }}
           />
         </div>
-
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#2563EB] rounded-full opacity-10" />
-        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#10B981] rounded-full opacity-10" />
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-3">
@@ -80,43 +95,32 @@ export function LoginPage() {
             <div>
               <div className="text-xl font-bold text-white">AvaliaEdu</div>
               <div className="text-xs text-blue-300">
-                Plataforma Inteligente de Avaliação Educacional
+                Plataforma de Avaliação Educacional
               </div>
             </div>
           </div>
         </div>
 
         <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-white mb-4 leading-tight">
+          <h1 className="text-3xl font-bold text-white mb-4">
             Avaliação educacional
             <br />
-            <span className="text-[#2563EB]">inteligente</span> para
-            <br />
-            municípios brasileiros
+            <span className="text-[#2563EB]">inteligente</span>
           </h1>
 
-          <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-            Crie provas alinhadas ao SAEB e SPAECE, escaneie gabaritos
-            automaticamente e gere relatórios pedagógicos em minutos.
-          </p>
-
-          <div className="space-y-4">
-            {[
-              {
-                icon: CheckCircle2,
-                text: "Correção automática por visão computacional",
-              },
-              { icon: BarChart3, text: "Analytics alinhados ao SAEB e SPAECE" },
-              {
-                icon: BookOpen,
-                text: "Banco de questões com habilidades categorizadas",
-              },
-            ].map((f, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <f.icon size={18} className="text-[#10B981]" />
-                <span className="text-sm text-slate-300">{f.text}</span>
-              </div>
-            ))}
+          <div className="space-y-3 text-sm text-slate-300">
+            <div className="flex gap-2 items-center">
+              <CheckCircle2 size={16} className="text-green-400" />
+              Correção automática
+            </div>
+            <div className="flex gap-2 items-center">
+              <BarChart3 size={16} className="text-green-400" />
+              Analytics educacionais
+            </div>
+            <div className="flex gap-2 items-center">
+              <BookOpen size={16} className="text-green-400" />
+              Banco de questões
+            </div>
           </div>
         </div>
       </div>
@@ -124,36 +128,31 @@ export function LoginPage() {
       {/* RIGHT */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-[#0F172A]">
-              Bem-vindo de volta
-            </h2>
-            <p className="text-slate-500 text-sm mt-1">
-              Entre na sua conta para continuar
-            </p>
-          </div>
+          <h2 className="text-2xl font-bold text-[#0F172A] mb-1">
+            Bem-vindo de volta
+          </h2>
+          <p className="text-sm text-slate-500 mb-6">Entre na sua conta</p>
 
-          {/* SELECT ROLE */}
-          <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-lg">
+          {/* ROLE */}
+          <div className="flex gap-2 mb-5 bg-gray-100 p-1 rounded-lg">
             {[
               { label: "Professor", value: "professor" },
               { label: "Diretor", value: "diretor" },
               { label: "Secretaria", value: "secretaria" },
-            ].map((role) => (
+            ].map((r) => (
               <button
-                key={role.value}
-                onClick={() => setTipo(role.value)}
-                className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
-                  tipo === role.value
-                    ? "bg-white text-[#2563EB] shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                key={r.value}
+                onClick={() => setTipo(r.value as User["tipo"])}
+                className={`flex-1 py-2 text-xs rounded ${
+                  tipo === r.value ? "bg-white text-blue-600" : "text-gray-500"
                 }`}
               >
-                {role.label}
+                {r.label}
               </button>
             ))}
           </div>
 
+          {/* FORM */}
           <div className="space-y-4">
             <input
               type="email"
@@ -173,7 +172,8 @@ export function LoginPage() {
               />
 
               <button
-                onClick={() => setShowPassword(!showPassword)}
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -185,7 +185,7 @@ export function LoginPage() {
               disabled={loading}
               className="w-full bg-[#2563EB] text-white py-3 rounded-lg"
             >
-              {loading ? "Entrando..." : "Entrar na Plataforma"}
+              {loading ? "Entrando..." : "Entrar"}
             </button>
           </div>
         </div>
